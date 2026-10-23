@@ -7,6 +7,7 @@ const store = new TimerStore();
 let view = localStorage.getItem("chronodeck.view") || "grid";
 let editingId = null;
 let lastUpdatedSecond = -1;
+let focusMode = false;
 
 const app = document.querySelector("#app");
 app.innerHTML = `
@@ -46,6 +47,7 @@ app.innerHTML = `
               <button data-view="grid" aria-label="Grid view">${icons.grid}</button>
               <button data-view="list" aria-label="List view">${icons.list}</button>
             </div>
+            <button class="icon-text-button" id="focusButton" aria-label="Enter focus mode" aria-pressed="false">${icons.focus}<span>Focus</span></button>
             <button class="icon-text-button" id="fullscreenButton">${icons.expand}<span>Present</span></button>
           </div>
         </div>
@@ -312,6 +314,16 @@ document.querySelectorAll("button[data-view]").forEach((button) => button.addEve
   localStorage.setItem("chronodeck.view", view);
   render();
 }));
+
+document.querySelector("#focusButton").addEventListener("click", (event) => {
+  focusMode = !focusMode;
+  document.querySelector(".shell").classList.toggle("is-focus-mode", focusMode);
+  event.currentTarget.classList.toggle("is-active", focusMode);
+  event.currentTarget.setAttribute("aria-pressed", String(focusMode));
+  event.currentTarget.setAttribute("aria-label", focusMode ? "Exit focus mode" : "Enter focus mode");
+  event.currentTarget.querySelector("span").textContent = focusMode ? "Exit focus" : "Focus";
+  window.scrollTo(0, 0);
+});
 
 document.querySelector("#fullscreenButton").addEventListener("click", async () => {
   try {
