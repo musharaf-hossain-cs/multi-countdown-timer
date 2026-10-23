@@ -156,7 +156,7 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
   .countdown { width: 100%; justify-content: space-between; gap: 4px; }
   .time-unit strong { font-size: clamp(29px, 10vw, 48px); }
   .colon { font-size: 25px; }
-  footer span:nth-child(2) { display: none; }
+  footer { gap: 12px; font-size: 9px; }
   dialog form { padding: 22px; }
   .form-row { grid-template-columns: 1fr; gap: 0; }
 }

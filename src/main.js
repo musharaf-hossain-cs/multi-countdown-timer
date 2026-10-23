@@ -55,7 +55,7 @@ app.innerHTML = `
 
     <footer>
       <span>CHRONODECK</span>
-      <span>Time moves forward. So do you.</span>
+      <span>A SITE BY MUSHARAF HOSSAIN</span>
       <span id="year"></span>
     </footer>
   </div>
