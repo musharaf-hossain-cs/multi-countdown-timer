@@ -16,7 +16,8 @@ function getPngDimensions(buffer) {
 test("web app manifest contains the metadata required for installation", async () => {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 
-  assert.equal(manifest.name, "Multi Count Down");
+  assert.equal(manifest.name, "ChronoDeck — Multi Countdown Timer");
+  assert.equal(manifest.short_name, "ChronoDeck");
   assert.equal(manifest.start_url, "./");
   assert.equal(manifest.scope, "./");
   assert.equal(manifest.display, "standalone");

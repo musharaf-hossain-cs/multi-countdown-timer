@@ -30,7 +30,7 @@ npm run build
 
 ## Install the app
 
-After the site is deployed over HTTPS, open it in Chrome or Edge and use the install icon in the address bar. On Android, the same option is available from the browser menu. Safari on iPhone and iPad uses **Share → Add to Home Screen**.
+After the site is deployed over HTTPS, open it in Chrome or Edge and use the install icon in the address bar. The install dialog identifies it as **ChronoDeck — Multi Countdown Timer**. On Android, the same option is available from the browser menu. Safari on iPhone and iPad uses **Share → Add to Home Screen**.
 
 Browsers decide when to show their native install control. During local development, use `npm run dev` or `npm run preview`; `localhost` is treated as a secure origin.
 

@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Multi Count Down",
-  "short_name": "Countdown",
+  "name": "ChronoDeck — Multi Countdown Timer",
+  "short_name": "ChronoDeck",
   "description": "Create and present multiple countdown timers from one focused dashboard.",
   "start_url": "./",
   "scope": "./",
