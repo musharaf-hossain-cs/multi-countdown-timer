@@ -98,7 +98,7 @@ h1 em { color: var(--acid); font-style: normal; }
 
 footer { height: 110px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); color: #676970; font: 400 10px/1 "DM Mono", monospace; letter-spacing: .08em; }
 
-dialog { width: min(520px, calc(100% - 28px)); padding: 0; color: var(--ink); background: #16171a; border: 1px solid #36383e; box-shadow: 0 28px 100px rgba(0,0,0,.75); }
+dialog { width: min(520px, calc(100% - 28px)); max-height: calc(100dvh - 28px); padding: 0; overflow-y: auto; color: var(--ink); background: #16171a; border: 1px solid #36383e; box-shadow: 0 28px 100px rgba(0,0,0,.75); }
 dialog::backdrop { background: rgba(0,0,0,.76); backdrop-filter: blur(6px); }
 dialog form { padding: 30px; }
 .dialog-heading { display: flex; justify-content: space-between; align-items: start; margin-bottom: 30px; }
@@ -107,6 +107,16 @@ dialog h2 { margin: 0; font-size: 30px; letter-spacing: -.04em; font-weight: 500
 dialog label { display: block; margin-bottom: 20px; color: #aaa; font: 500 10px/1 "DM Mono", monospace; letter-spacing: .1em; text-transform: uppercase; }
 dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; color: var(--ink); background: #0f1012; border: 1px solid #34363b; border-radius: 0; color-scheme: dark; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.time-option { min-width: 0; margin: 0; padding: 0; border: 0; }
+.time-option legend { margin: 0 0 4px; color: var(--ink); font: 500 11px/1 "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+.form-divider { display: flex; align-items: center; gap: 12px; margin: 3px 0 20px; color: #65676d; font: 500 9px/1 "DM Mono", monospace; letter-spacing: .12em; }
+.form-divider::before, .form-divider::after { content: ""; flex: 1; height: 1px; background: #303238; }
+.form-divider span { white-space: nowrap; }
+.duration-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.duration-grid label { margin-bottom: 9px; text-align: center; font-size: 8px; letter-spacing: .06em; }
+.duration-grid input { padding: 0 6px; text-align: center; font: 400 19px/1 "DM Mono", monospace; appearance: textfield; }
+.duration-grid input::-webkit-inner-spin-button, .duration-grid input::-webkit-outer-spin-button { appearance: none; margin: 0; }
+.duration-note { margin: 0 0 18px; color: #707279; font-size: 11px; line-height: 1.4; }
 .form-error { min-height: 18px; margin: -4px 0 14px; color: #ff776e; font-size: 12px; }
 .dialog-actions { justify-content: flex-end; }
 .confirm-dialog { width: min(430px, calc(100% - 28px)); }

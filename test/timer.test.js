@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fromLocalInputValues, normalizeTimer, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
+import { durationToMilliseconds, fromLocalInputValues, normalizeTimer, resolveTarget, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
 
 test("sortTimers orders countdowns by target time", () => {
   const timers = [
@@ -41,4 +41,30 @@ test("local date input helpers round-trip", () => {
   const input = toLocalInputValues(new Date(2030, 5, 7, 8, 9).getTime());
   assert.deepEqual(input, { date: "2030-06-07", time: "08:09" });
   assert.equal(fromLocalInputValues(input.date, input.time), new Date(2030, 5, 7, 8, 9).getTime());
+});
+
+test("durationToMilliseconds combines days, hours, minutes, and seconds", () => {
+  assert.equal(durationToMilliseconds({ days: "1", hours: "2", minutes: "3", seconds: "4" }), 93784000);
+  assert.equal(durationToMilliseconds({}), 0);
+  assert.throws(() => durationToMilliseconds({ hours: "24" }), /Hours/);
+  assert.throws(() => durationToMilliseconds({ seconds: "1.5" }), /Seconds/);
+});
+
+test("resolveTarget prefers a positive duration and falls back to end date", () => {
+  const now = new Date(2030, 0, 1, 10, 0).getTime();
+  assert.equal(resolveTarget({
+    date: "2040-01-01",
+    time: "00:00",
+    duration: { minutes: "5" },
+    now
+  }), now + 300000);
+
+  assert.equal(resolveTarget({
+    date: "2030-01-02",
+    time: "12:30",
+    duration: {},
+    now
+  }), new Date(2030, 0, 2, 12, 30).getTime());
+
+  assert.throws(() => resolveTarget({ date: "", time: "", duration: {}, now }), /end date/i);
 });

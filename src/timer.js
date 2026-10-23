@@ -54,3 +54,32 @@ export function fromLocalInputValues(date, time) {
   if (!date || !time) return NaN;
   return new Date(`${date}T${time}`).getTime();
 }
+
+function parseDurationPart(value, label, max) {
+  if (value === "" || value === null || value === undefined) return 0;
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < 0 || number > max) {
+    throw new Error(`${label} must be a whole number from 0 to ${max}.`);
+  }
+  return number;
+}
+
+export function durationToMilliseconds(duration = {}) {
+  const days = parseDurationPart(duration.days, "Days", 36500);
+  const hours = parseDurationPart(duration.hours, "Hours", 23);
+  const minutes = parseDurationPart(duration.minutes, "Minutes", 59);
+  const seconds = parseDurationPart(duration.seconds, "Seconds", 59);
+
+  return (((days * 24 + hours) * 60 + minutes) * 60 + seconds) * 1000;
+}
+
+export function resolveTarget({ date, time, duration, now = Date.now() }) {
+  const durationMs = durationToMilliseconds(duration);
+  if (durationMs > 0) return now + durationMs;
+
+  const target = fromLocalInputValues(date, time);
+  if (!Number.isFinite(target)) {
+    throw new Error("Choose an end date and time or enter a duration.");
+  }
+  return target;
+}

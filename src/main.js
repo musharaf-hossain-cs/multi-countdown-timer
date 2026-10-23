@@ -1,6 +1,6 @@
 import "./styles.css";
 import { TimerStore } from "./storage.js";
-import { formatTarget, fromLocalInputValues, splitDuration, toLocalInputValues } from "./timer.js";
+import { formatTarget, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
 
 const store = new TimerStore();
@@ -67,10 +67,24 @@ app.innerHTML = `
         <button class="icon-button" value="cancel" aria-label="Close">${icons.close}</button>
       </div>
       <label>Label<input id="labelInput" name="label" maxlength="80" placeholder="e.g. Product launch" required autocomplete="off"></label>
-      <div class="form-row">
-        <label>Date<input id="dateInput" name="date" type="date" required></label>
-        <label>Time<input id="timeInput" name="time" type="time" required></label>
-      </div>
+      <fieldset class="time-option">
+        <legend>End date &amp; time</legend>
+        <div class="form-row">
+          <label>Date<input id="dateInput" name="date" type="date"></label>
+          <label>Time<input id="timeInput" name="time" type="time"></label>
+        </div>
+      </fieldset>
+      <div class="form-divider"><span>OR SET A DURATION</span></div>
+      <fieldset class="time-option duration-option">
+        <legend>Run timer for</legend>
+        <div class="duration-grid">
+          <label>Days<input id="durationDays" name="durationDays" type="number" min="0" max="36500" step="1" inputmode="numeric" placeholder="00"></label>
+          <label>Hours<input id="durationHours" name="durationHours" type="number" min="0" max="23" step="1" inputmode="numeric" placeholder="00"></label>
+          <label>Minutes<input id="durationMinutes" name="durationMinutes" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="00"></label>
+          <label>Seconds<input id="durationSeconds" name="durationSeconds" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="00"></label>
+        </div>
+        <p class="duration-note">Starts counting from the moment you save.</p>
+      </fieldset>
       <p class="form-error" id="formError" role="alert"></p>
       <div class="dialog-actions">
         <button class="secondary-button" value="cancel">Cancel</button>
@@ -102,6 +116,10 @@ const elements = {
   label: document.querySelector("#labelInput"),
   date: document.querySelector("#dateInput"),
   time: document.querySelector("#timeInput"),
+  durationDays: document.querySelector("#durationDays"),
+  durationHours: document.querySelector("#durationHours"),
+  durationMinutes: document.querySelector("#durationMinutes"),
+  durationSeconds: document.querySelector("#durationSeconds"),
   formError: document.querySelector("#formError"),
   deleteDialog: document.querySelector("#deleteDialog"),
   deleteMessage: document.querySelector("#deleteMessage"),
@@ -191,6 +209,10 @@ function openTimerDialog(timer = null) {
   elements.label.value = timer?.label || "";
   elements.date.value = values.date;
   elements.time.value = values.time;
+  elements.durationDays.value = "";
+  elements.durationHours.value = "";
+  elements.durationMinutes.value = "";
+  elements.durationSeconds.value = "";
   elements.formError.textContent = "";
   document.querySelector("#dialogEyebrow").textContent = timer ? "EDIT COUNTDOWN" : "NEW COUNTDOWN";
   document.querySelector("#dialogTitle").textContent = timer ? "Update timer" : "Add a timer";
@@ -207,8 +229,17 @@ function openDeleteDialog(timer) {
 
 elements.form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const target = fromLocalInputValues(elements.date.value, elements.time.value);
   try {
+    const target = resolveTarget({
+      date: elements.date.value,
+      time: elements.time.value,
+      duration: {
+        days: elements.durationDays.value,
+        hours: elements.durationHours.value,
+        minutes: elements.durationMinutes.value,
+        seconds: elements.durationSeconds.value
+      }
+    });
     if (editingId) await store.update(editingId, { label: elements.label.value, target });
     else await store.add({ label: elements.label.value, target });
     elements.dialog.close();
