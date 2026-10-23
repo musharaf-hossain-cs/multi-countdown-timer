@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { durationToMilliseconds, fromLocalInputValues, normalizeTimer, resolveTarget, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
+import { durationToMilliseconds, fromLocalInputValues, getPresentationLayout, normalizeTimer, resolveTarget, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
 
 test("sortTimers orders countdowns by target time", () => {
   const timers = [
@@ -67,4 +67,40 @@ test("resolveTarget prefers a positive duration and falls back to end date", () 
   }), new Date(2030, 0, 2, 12, 30).getTime());
 
   assert.throws(() => resolveTarget({ date: "", time: "", duration: {}, now }), /end date/i);
+});
+
+test("presentation layout follows balanced video-call placement", () => {
+  assert.deepEqual(getPresentationLayout(1), {
+    columns: 1,
+    rows: 1,
+    tracks: 2,
+    lastRowCount: 1,
+    firstLastRowIndex: 0,
+    firstLastRowTrack: 1
+  });
+  assert.deepEqual(getPresentationLayout(2), {
+    columns: 2,
+    rows: 1,
+    tracks: 4,
+    lastRowCount: 2,
+    firstLastRowIndex: 0,
+    firstLastRowTrack: 1
+  });
+  assert.deepEqual(getPresentationLayout(3), {
+    columns: 2,
+    rows: 2,
+    tracks: 4,
+    lastRowCount: 1,
+    firstLastRowIndex: 2,
+    firstLastRowTrack: 2
+  });
+  assert.deepEqual(getPresentationLayout(4), {
+    columns: 2,
+    rows: 2,
+    tracks: 4,
+    lastRowCount: 2,
+    firstLastRowIndex: 2,
+    firstLastRowTrack: 1
+  });
+  assert.equal(getPresentationLayout(5).firstLastRowTrack, 2);
 });

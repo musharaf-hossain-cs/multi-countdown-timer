@@ -1,6 +1,6 @@
 import "./styles.css";
 import { TimerStore } from "./storage.js";
-import { formatTarget, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
+import { formatTarget, getPresentationLayout, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
 
 const store = new TimerStore();
@@ -168,16 +168,21 @@ function renderTimer(timer) {
 function setPresentationGrid() {
   const count = Math.max(1, store.timers.length);
   const aspect = window.innerWidth / Math.max(1, window.innerHeight);
-  const columns = Math.max(1, Math.ceil(Math.sqrt(count * aspect)));
-  const rows = Math.max(1, Math.ceil(count / columns));
-  const cellWidth = (window.innerWidth - ((columns + 1) * 10)) / columns;
-  const cellHeight = (window.innerHeight - ((rows + 1) * 10)) / rows;
+  const layout = getPresentationLayout(count, aspect);
+  const cellWidth = (window.innerWidth - ((layout.columns + 1) * 10)) / layout.columns;
+  const cellHeight = (window.innerHeight - ((layout.rows + 1) * 10)) / layout.rows;
   const digitSize = Math.max(24, Math.min(84, cellWidth / 12, cellHeight / 5));
   const titleSize = Math.max(24, Math.min(72, cellWidth / 10, cellHeight / 4));
-  elements.timerBoard.style.setProperty("--present-cols", columns);
-  elements.timerBoard.style.setProperty("--present-rows", rows);
+  elements.timerBoard.style.setProperty("--present-tracks", layout.tracks);
+  elements.timerBoard.style.setProperty("--present-rows", layout.rows);
   elements.timerBoard.style.setProperty("--present-digit", `${digitSize}px`);
   elements.timerBoard.style.setProperty("--present-title", `${titleSize}px`);
+
+  const cards = [...elements.timerBoard.querySelectorAll(".timer-card")];
+  cards.forEach((card) => card.style.removeProperty("--present-start"));
+  if (layout.lastRowCount < layout.columns && cards[layout.firstLastRowIndex]) {
+    cards[layout.firstLastRowIndex].style.setProperty("--present-start", layout.firstLastRowTrack);
+  }
 }
 
 function render() {

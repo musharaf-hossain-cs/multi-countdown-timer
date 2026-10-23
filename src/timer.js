@@ -83,3 +83,26 @@ export function resolveTarget({ date, time, duration, now = Date.now() }) {
   }
   return target;
 }
+
+export function getPresentationLayout(count, aspectRatio = 16 / 9) {
+  const safeCount = Math.max(1, Math.floor(Number(count) || 0));
+  const safeAspect = Math.max(0.5, Number(aspectRatio) || 16 / 9);
+
+  let columns;
+  if (safeCount === 1) columns = 1;
+  else if (safeCount <= 4) columns = 2;
+  else columns = Math.min(safeCount, Math.ceil(Math.sqrt(safeCount * safeAspect)));
+
+  const rows = Math.ceil(safeCount / columns);
+  const remainder = safeCount % columns;
+  const lastRowCount = remainder || columns;
+
+  return {
+    columns,
+    rows,
+    tracks: columns * 2,
+    lastRowCount,
+    firstLastRowIndex: safeCount - lastRowCount,
+    firstLastRowTrack: remainder ? columns - remainder + 1 : 1
+  };
+}

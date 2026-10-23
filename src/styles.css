@@ -128,15 +128,15 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
 .board:fullscreen .board-toolbar:hover { opacity: 1; }
 .board:fullscreen .board-toolbar > div:first-child, .board:fullscreen .segmented { display: none; }
 .board:fullscreen .icon-text-button span { display: none; }
-.board:fullscreen .timer-board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(var(--present-cols), minmax(0, 1fr)); grid-template-rows: repeat(var(--present-rows), minmax(0, 1fr)); gap: 10px; }
-.board:fullscreen .timer-card { min-height: 0; height: 100%; display: flex; flex-direction: column; padding: clamp(18px, 2.4vw, 44px); transform: none; }
+.board:fullscreen .timer-board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(var(--present-tracks), minmax(0, 1fr)); grid-template-rows: repeat(var(--present-rows), minmax(0, 1fr)); gap: 10px; }
+.board:fullscreen .timer-card { grid-column: var(--present-start, auto) / span 2; min-height: 0; height: 100%; display: flex; flex-direction: column; padding: clamp(18px, 2.4vw, 44px); transform: none; }
 .board:fullscreen .card-actions { display: none; }
 .board:fullscreen .card-title-wrap { max-width: 92%; margin: auto 0; }
 .board:fullscreen .card-title-wrap h2 { font-size: var(--present-title); }
 .board:fullscreen .card-title-wrap p { font-size: clamp(9px, 1vw, 14px); margin-top: 13px; }
 .board:fullscreen .countdown { width: 100%; gap: clamp(5px, 1.2vw, 22px); justify-content: space-between; }
 .board:fullscreen .time-unit strong { font-size: var(--present-digit); }
-.board:fullscreen .empty-state { height: 100%; }
+.board:fullscreen .empty-state { grid-column: 1 / -1; height: 100%; }
 
 @media (max-width: 760px) {
   .shell { padding: 0 18px; }
