@@ -171,12 +171,14 @@ function setPresentationGrid() {
   const layout = getPresentationLayout(count, aspect);
   const cellWidth = (window.innerWidth - ((layout.columns + 1) * 10)) / layout.columns;
   const cellHeight = (window.innerHeight - ((layout.rows + 1) * 10)) / layout.rows;
-  const digitSize = Math.max(24, Math.min(84, cellWidth / 12, cellHeight / 5));
-  const titleSize = Math.max(24, Math.min(72, cellWidth / 10, cellHeight / 4));
+  const digitSize = Math.max(16, Math.min(84, cellWidth / 14, cellHeight / 5));
+  const titleSize = Math.max(18, Math.min(72, cellWidth / 10, cellHeight / 4));
+  const paddingSize = Math.max(8, Math.min(44, cellWidth / 18, cellHeight / 8));
   elements.timerBoard.style.setProperty("--present-tracks", layout.tracks);
   elements.timerBoard.style.setProperty("--present-rows", layout.rows);
   elements.timerBoard.style.setProperty("--present-digit", `${digitSize}px`);
   elements.timerBoard.style.setProperty("--present-title", `${titleSize}px`);
+  elements.timerBoard.style.setProperty("--present-padding", `${paddingSize}px`);
 
   const cards = [...elements.timerBoard.querySelectorAll(".timer-card")];
   cards.forEach((card) => card.style.removeProperty("--present-start"));

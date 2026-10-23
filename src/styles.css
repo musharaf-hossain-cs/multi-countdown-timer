@@ -129,7 +129,7 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
 .board:fullscreen .board-toolbar > div:first-child, .board:fullscreen .segmented { display: none; }
 .board:fullscreen .icon-text-button span { display: none; }
 .board:fullscreen .timer-board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(var(--present-tracks), minmax(0, 1fr)); grid-template-rows: repeat(var(--present-rows), minmax(0, 1fr)); gap: 10px; }
-.board:fullscreen .timer-card { grid-column: var(--present-start, auto) / span 2; min-height: 0; height: 100%; display: flex; flex-direction: column; padding: clamp(18px, 2.4vw, 44px); transform: none; }
+.board:fullscreen .timer-card { grid-column: var(--present-start, auto) / span 2; min-height: 0; height: 100%; display: flex; flex-direction: column; padding: var(--present-padding); transform: none; }
 .board:fullscreen .card-actions { display: none; }
 .board:fullscreen .card-title-wrap { max-width: 92%; margin: auto 0; }
 .board:fullscreen .card-title-wrap h2 { font-size: var(--present-title); }
