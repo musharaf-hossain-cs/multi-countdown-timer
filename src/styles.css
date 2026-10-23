@@ -180,6 +180,7 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
 
 @media (max-width: 430px) {
   .view-controls { gap: 7px; }
+  .segmented { display: none; }
   .time-unit strong { font-size: 28px; }
   .colon { font-size: 22px; }
   .card-title-wrap h2 { font-size: 27px; }

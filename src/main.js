@@ -2,6 +2,7 @@ import "./styles.css";
 import { TimerStore } from "./storage.js";
 import { filterTimersByLabel, formatTarget, getNewlyExpiredTimers, getPresentationLayout, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
+import { createTimerWidget } from "./widget.js";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -72,6 +73,7 @@ app.innerHTML = `
               <button data-view="grid" aria-label="Grid view">${icons.grid}</button>
               <button data-view="list" aria-label="List view">${icons.list}</button>
             </div>
+            <button class="icon-text-button" id="widgetButton" aria-label="Open visible timers in floating widget" aria-pressed="false">${icons.widget}<span>Widget</span></button>
             <button class="icon-text-button" id="focusButton" aria-label="Enter focus mode" aria-pressed="false">${icons.focus}<span>Focus</span></button>
             <button class="icon-text-button" id="fullscreenButton">${icons.expand}<span>Present</span></button>
             <div class="focus-timer-count" aria-live="polite">
@@ -143,6 +145,7 @@ const elements = {
   timerCount: document.querySelector("#timerCount"),
   focusTimerCount: document.querySelector("#focusTimerCount"),
   labelFilter: document.querySelector("#labelFilter"),
+  widgetButton: document.querySelector("#widgetButton"),
   syncBadge: document.querySelector(".sync-badge"),
   dialog: document.querySelector("#timerDialog"),
   form: document.querySelector("#timerForm"),
@@ -158,6 +161,21 @@ const elements = {
   deleteMessage: document.querySelector("#deleteMessage"),
   confirmDelete: document.querySelector("#confirmDelete")
 };
+
+const timerWidget = createTimerWidget({
+  getTimers: () => store.timers,
+  getFilter: () => labelFilter,
+  onError: (error) => {
+    console.warn("The floating timer widget could not be opened.", error);
+    elements.syncBadge.dataset.state = "offline";
+    elements.syncBadge.querySelector("span").textContent = "Widget unavailable";
+  },
+  onStateChange: (isOpen) => {
+    elements.widgetButton.classList.toggle("is-active", isOpen);
+    elements.widgetButton.setAttribute("aria-pressed", String(isOpen));
+    elements.widgetButton.setAttribute("aria-label", isOpen ? "Replace the open floating widget with visible timers" : "Open visible timers in floating widget");
+  }
+});
 
 function escapeHtml(value) {
   const node = document.createElement("span");
@@ -178,6 +196,7 @@ function renderTimer(timer) {
         <span class="timer-status"><i></i>${status}</span>
         <div class="card-actions">
           <button data-action="edit" aria-label="Edit ${escapeHtml(timer.label)}">${icons.edit}</button>
+          <button data-action="widget" aria-label="Open ${escapeHtml(timer.label)} in floating widget">${icons.widget}</button>
           <button data-action="delete" aria-label="Delete ${escapeHtml(timer.label)}">${icons.trash}</button>
         </div>
       </div>
@@ -405,8 +424,11 @@ elements.timerBoard.addEventListener("click", (event) => {
   const timer = store.timers.find((item) => item.id === actionButton.closest("[data-id]")?.dataset.id);
   if (!timer) return;
   if (action === "edit") openTimerDialog(timer);
+  if (action === "widget") timerWidget.openSingle(timer.id);
   if (action === "delete") openDeleteDialog(timer);
 });
+
+elements.widgetButton.addEventListener("click", () => timerWidget.openCollection());
 
 document.querySelectorAll("button[data-view]").forEach((button) => button.addEventListener("click", () => {
   view = button.dataset.view;
@@ -446,7 +468,10 @@ document.addEventListener("fullscreenchange", () => {
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) stopTabAlert();
 });
-window.addEventListener("pagehide", stopTabAlert);
+window.addEventListener("pagehide", () => {
+  stopTabAlert();
+  timerWidget.close();
+});
 window.addEventListener("resize", setPresentationGrid);
 document.addEventListener("keydown", (event) => {
   if (event.target.closest("input, textarea, select, [contenteditable='true']")) return;
