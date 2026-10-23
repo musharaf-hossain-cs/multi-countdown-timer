@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { durationToMilliseconds, filterTimersByLabel, fromLocalInputValues, getNewlyExpiredTimers, getPresentationLayout, normalizeTimer, resolveTarget, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
+import { durationToMilliseconds, filterTimersByLabel, fromLocalInputValues, getNewlyExpiredTimers, getPresentationLayout, getTimerRemaining, isTimerExpired, isTimerPaused, normalizeTimer, pauseTimer, resolveTarget, resumeTimer, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
 
 test("sortTimers orders countdowns by target time", () => {
   const timers = [
@@ -27,13 +27,42 @@ test("getNewlyExpiredTimers only returns timers that crossed expiry while tracke
   const timers = [
     { id: "expired", target: 999 },
     { id: "still-active", target: 1001 },
-    { id: "already-expired", target: 500 }
+    { id: "already-expired", target: 500 },
+    { id: "paused", target: 500, pausedRemaining: 200 }
   ];
 
   assert.deepEqual(
-    getNewlyExpiredTimers(timers, new Set(["expired", "still-active"]), 1000).map((timer) => timer.id),
+    getNewlyExpiredTimers(timers, new Set(["expired", "still-active", "paused"]), 1000).map((timer) => timer.id),
     ["expired"]
   );
+});
+
+test("isTimerExpired treats the target moment and earlier as finished", () => {
+  assert.equal(isTimerExpired({ target: 999 }, 1000), true);
+  assert.equal(isTimerExpired({ target: 1000 }, 1000), true);
+  assert.equal(isTimerExpired({ target: 1001 }, 1000), false);
+  assert.equal(isTimerExpired({ target: 999, pausedRemaining: 250 }, 1000), false);
+});
+
+test("pause and resume preserve the exact remaining duration", () => {
+  const timer = { id: "timer", target: 1500 };
+  const paused = pauseTimer(timer, 1000);
+
+  assert.equal(isTimerPaused(paused), true);
+  assert.equal(paused.pausedRemaining, 500);
+  assert.deepEqual(getTimerRemaining(paused, 5000), {
+    expired: false,
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 1,
+    delta: 500
+  });
+
+  const resumed = resumeTimer(paused, 5000);
+  assert.equal(isTimerPaused(resumed), false);
+  assert.equal(resumed.target, 5500);
+  assert.equal(resumed.pausedRemaining, null);
 });
 
 test("splitDuration calculates units and expiry", () => {

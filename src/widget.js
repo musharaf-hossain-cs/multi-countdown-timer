@@ -1,4 +1,4 @@
-import { filterTimersByLabel, formatTarget, splitDuration } from "./timer.js";
+import { filterTimersByLabel, formatTarget, getTimerRemaining, isTimerPaused } from "./timer.js";
 
 const WIDGET_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@500;600;700&display=swap');
@@ -43,6 +43,10 @@ const WIDGET_STYLES = `
   .widget-timer.is-expired { border-color: rgba(255,93,82,.42); background: #1c1415; }
   .widget-timer.is-expired .widget-status, .widget-timer.is-expired .widget-unit strong { color: var(--danger); }
   .widget-timer.is-expired .widget-status::before { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .widget-timer.is-paused { border-color: rgba(217,255,67,.34); }
+  .widget-timer.is-paused .widget-status { color: var(--acid); }
+  .widget-timer.is-paused .widget-status::before { box-shadow: none; }
+  .widget-timer.is-paused .widget-countdown { opacity: .64; }
   .widget-empty { min-height: 175px; display: grid; place-items: center; align-content: center; padding: 24px; text-align: center; border: 1px dashed #303238; border-radius: 8px; }
   .widget-empty-icon { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 16px; color: var(--acid); border: 1px solid #3a3c42; border-radius: 50%; }
   .widget-empty-icon svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8; }
@@ -90,13 +94,14 @@ export function getWidgetWindowSize(timerCount, modeKind = "collection") {
 }
 
 function timerMarkup(timer) {
+  const targetLabel = isTimerPaused(timer) ? "Paused · End time shifts on resume" : formatTarget(timer.target);
   return `
     <article class="widget-timer" data-timer-id="${escapeHtml(timer.id)}">
       <div class="widget-timer-top">
         <h2 class="widget-label">${escapeHtml(timer.label)}</h2>
         <span class="widget-status" data-part="status">COUNTING</span>
       </div>
-      <p class="widget-target">${escapeHtml(formatTarget(timer.target))}</p>
+      <p class="widget-target">${escapeHtml(targetLabel)}</p>
       <div class="widget-countdown" aria-live="off">
         <div class="widget-unit"><strong data-unit="days">00</strong><span>DAYS</span></div>
         <div class="widget-unit"><strong data-unit="hours">00</strong><span>HRS</span></div>
@@ -162,7 +167,7 @@ export function createTimerWidget({ getTimers, getFilter, onError, onStateChange
     const nextSignature = JSON.stringify([
       mode.kind,
       mode.kind === "collection" ? filter : mode.timerId,
-      timers.map((timer) => [timer.id, timer.label, timer.target])
+      timers.map((timer) => [timer.id, timer.label, timer.target, timer.pausedRemaining])
     ]);
     if (nextSignature !== contentSignature) {
       const list = document.querySelector('[data-part="list"]');
@@ -182,9 +187,11 @@ export function createTimerWidget({ getTimers, getFilter, onError, onStateChange
     document.querySelectorAll("[data-timer-id]").forEach((card, index) => {
       const timer = timers[index];
       if (!timer) return;
-      const remaining = splitDuration(timer.target);
+      const paused = isTimerPaused(timer);
+      const remaining = getTimerRemaining(timer);
       card.classList.toggle("is-expired", remaining.expired);
-      card.querySelector('[data-part="status"]').textContent = remaining.expired ? "TIME'S UP" : "COUNTING";
+      card.classList.toggle("is-paused", paused);
+      card.querySelector('[data-part="status"]').textContent = paused ? "PAUSED" : remaining.expired ? "TIME'S UP" : "COUNTING";
       for (const unit of ["days", "hours", "minutes", "seconds"]) {
         card.querySelector(`[data-unit="${unit}"]`).textContent = String(remaining[unit]).padStart(2, "0");
       }

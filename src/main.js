@@ -1,6 +1,6 @@
 import "./styles.css";
 import { TimerStore } from "./storage.js";
-import { filterTimersByLabel, formatTarget, getNewlyExpiredTimers, getPresentationLayout, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
+import { filterTimersByLabel, formatTarget, getNewlyExpiredTimers, getPresentationLayout, getTimerRemaining, isTimerExpired, isTimerPaused, resolveTarget, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
 import { createTimerWidget } from "./widget.js";
 
@@ -19,7 +19,7 @@ let lastUpdatedSecond = -1;
 let focusMode = false;
 let labelFilter = "";
 let targetInputsTouched = false;
-let trackedActiveTimerIds = new Set(store.timers.filter((timer) => timer.target > Date.now()).map((timer) => timer.id));
+let trackedActiveTimerIds = new Set(store.timers.filter((timer) => !isTimerExpired(timer)).map((timer) => timer.id));
 let pendingExpiredTimerLabels = new Set();
 let tabAlertInterval = null;
 let tabAlertFrameVisible = false;
@@ -188,10 +188,12 @@ function unit(value, label) {
 }
 
 function renderTimer(timer) {
-  const remaining = splitDuration(timer.target);
-  const status = remaining.expired ? "TIME'S UP" : "COUNTING DOWN";
+  const paused = isTimerPaused(timer);
+  const remaining = getTimerRemaining(timer);
+  const status = paused ? "PAUSED" : remaining.expired ? "TIME'S UP" : "COUNTING DOWN";
+  const targetLabel = paused ? "PAUSED · END TIME SHIFTS ON RESUME" : formatTarget(timer.target);
   return `
-    <article class="timer-card ${remaining.expired ? "is-expired" : ""}" data-id="${timer.id}">
+    <article class="timer-card ${paused ? "is-paused" : remaining.expired ? "is-expired" : ""}" data-id="${timer.id}">
       <div class="card-topline">
         <span class="timer-status"><i></i>${status}</span>
         <div class="card-actions">
@@ -202,16 +204,19 @@ function renderTimer(timer) {
       </div>
       <div class="card-title-wrap">
         <h2>${escapeHtml(timer.label)}</h2>
-        <p>${formatTarget(timer.target)}</p>
+        <p>${targetLabel}</p>
       </div>
-      <div class="countdown" aria-label="${remaining.days} days, ${remaining.hours} hours, ${remaining.minutes} minutes, ${remaining.seconds} seconds">
-        ${unit(remaining.days, "DAYS")}
-        <span class="colon">:</span>
-        ${unit(remaining.hours, "HRS")}
-        <span class="colon">:</span>
-        ${unit(remaining.minutes, "MIN")}
-        <span class="colon">:</span>
-        ${unit(remaining.seconds, "SEC")}
+      <div class="countdown-row">
+        ${remaining.expired && !paused ? "" : `<button class="timer-toggle" data-action="${paused ? "resume" : "pause"}" aria-label="${paused ? "Resume" : "Pause"} ${escapeHtml(timer.label)}">${paused ? icons.play : icons.pause}</button>`}
+        <div class="countdown" aria-label="${remaining.days} days, ${remaining.hours} hours, ${remaining.minutes} minutes, ${remaining.seconds} seconds">
+          ${unit(remaining.days, "DAYS")}
+          <span class="colon">:</span>
+          ${unit(remaining.hours, "HRS")}
+          <span class="colon">:</span>
+          ${unit(remaining.minutes, "MIN")}
+          <span class="colon">:</span>
+          ${unit(remaining.seconds, "SEC")}
+        </div>
       </div>
     </article>
   `;
@@ -249,7 +254,7 @@ function stopTabAlert() {
 function trackTimerExpirations(now) {
   const newlyExpiredTimers = getNewlyExpiredTimers(store.timers, trackedActiveTimerIds, now);
   trackedActiveTimerIds = new Set(
-    store.timers.filter((timer) => timer.target > now).map((timer) => timer.id)
+    store.timers.filter((timer) => !isTimerExpired(timer, now)).map((timer) => timer.id)
   );
   if (document.hidden && newlyExpiredTimers.length) startTabAlert(newlyExpiredTimers);
 }
@@ -257,18 +262,22 @@ function trackTimerExpirations(now) {
 function refreshCountdowns() {
   const now = Date.now();
   const timersById = new Map(store.timers.map((timer) => [timer.id, timer]));
-  const activeCount = store.timers.filter((timer) => timer.target > now).length;
+  const activeCount = store.timers.filter((timer) => !isTimerExpired(timer, now)).length;
   trackTimerExpirations(now);
 
   elements.timerBoard.querySelectorAll(".timer-card").forEach((card) => {
     const timer = timersById.get(card.dataset.id);
     if (!timer) return;
 
-    const remaining = splitDuration(timer.target, now);
+    const paused = isTimerPaused(timer);
+    const remaining = getTimerRemaining(timer, now);
     card.classList.toggle("is-expired", remaining.expired);
+    card.classList.toggle("is-paused", paused);
 
     const status = card.querySelector(".timer-status");
-    if (status?.lastChild) status.lastChild.textContent = remaining.expired ? "TIME'S UP" : "COUNTING DOWN";
+    if (status?.lastChild) status.lastChild.textContent = paused ? "PAUSED" : remaining.expired ? "TIME'S UP" : "COUNTING DOWN";
+    const toggle = card.querySelector(".timer-toggle");
+    if (toggle) toggle.hidden = remaining.expired && !paused;
 
     const values = [remaining.days, remaining.hours, remaining.minutes, remaining.seconds];
     card.querySelectorAll(".time-unit strong").forEach((unitElement, index) => {
@@ -313,7 +322,7 @@ function render() {
     button.classList.toggle("is-active", button.dataset.view === view);
     button.setAttribute("aria-pressed", String(button.dataset.view === view));
   });
-  const activeCount = store.timers.filter((timer) => timer.target > Date.now()).length;
+  const activeCount = store.timers.filter((timer) => !isTimerExpired(timer)).length;
   const visibleTimers = filterTimersByLabel(store.timers, labelFilter);
   elements.timerCount.textContent = activeCount;
   elements.focusTimerCount.textContent = activeCount;
@@ -343,8 +352,9 @@ function render() {
 
 function openTimerDialog(timer = null) {
   editingId = timer?.id || null;
-  const values = toLocalInputValues(timer?.target);
-  const remaining = timer ? splitDuration(timer.target) : null;
+  const effectiveTarget = timer && isTimerPaused(timer) ? Date.now() + timer.pausedRemaining : timer?.target;
+  const values = toLocalInputValues(effectiveTarget);
+  const remaining = timer ? getTimerRemaining(timer) : null;
   elements.label.value = timer?.label || "";
   elements.date.value = values.date;
   elements.time.value = values.time;
@@ -383,7 +393,11 @@ elements.form.addEventListener("submit", async (event) => {
           seconds: elements.durationSeconds.value
         }
       });
-    if (editingId) await store.update(editingId, { label: elements.label.value, target });
+    if (editingId) await store.update(editingId, {
+      label: elements.label.value,
+      target,
+      ...(targetInputsTouched ? { pausedRemaining: null } : {})
+    });
     else await store.add({ label: elements.label.value, target });
     elements.dialog.close();
   } catch (error) {
@@ -416,7 +430,7 @@ elements.confirmDelete.addEventListener("click", async (event) => {
 
 document.querySelector("#addTimerTop").addEventListener("click", () => openTimerDialog());
 
-elements.timerBoard.addEventListener("click", (event) => {
+elements.timerBoard.addEventListener("click", async (event) => {
   const actionButton = event.target.closest("[data-action]");
   if (!actionButton) return;
   const action = actionButton.dataset.action;
@@ -425,7 +439,12 @@ elements.timerBoard.addEventListener("click", (event) => {
   if (!timer) return;
   if (action === "edit") openTimerDialog(timer);
   if (action === "widget") timerWidget.openSingle(timer.id);
-  if (action === "delete") openDeleteDialog(timer);
+  if (action === "pause") await store.pause(timer.id);
+  if (action === "resume") await store.resume(timer.id);
+  if (action === "delete") {
+    if (isTimerExpired(timer)) await store.remove(timer.id);
+    else openDeleteDialog(timer);
+  }
 });
 
 elements.widgetButton.addEventListener("click", () => timerWidget.openCollection());
@@ -484,7 +503,7 @@ document.addEventListener("keydown", (event) => {
 store.addEventListener("change", () => {
   render();
   trackedActiveTimerIds = new Set(
-    store.timers.filter((timer) => timer.target > Date.now()).map((timer) => timer.id)
+    store.timers.filter((timer) => !isTimerExpired(timer)).map((timer) => timer.id)
   );
 });
 store.addEventListener("status", (event) => {

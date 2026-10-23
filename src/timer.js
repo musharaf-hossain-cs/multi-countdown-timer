@@ -3,6 +3,10 @@ export const MAX_LABEL_LENGTH = 80;
 export function normalizeTimer(input) {
   const label = String(input?.label ?? "").trim().slice(0, MAX_LABEL_LENGTH);
   const target = Number(input?.target);
+  const pausedRemainingValue = input?.pausedRemaining;
+  const pausedRemaining = pausedRemainingValue === null || pausedRemainingValue === undefined
+    ? null
+    : Number(pausedRemainingValue);
 
   if (!label) throw new Error("A label is required.");
   if (!Number.isFinite(target)) throw new Error("Choose a valid date and time.");
@@ -11,13 +15,16 @@ export function normalizeTimer(input) {
     id: String(input.id || crypto.randomUUID()),
     label,
     target,
+    pausedRemaining: Number.isFinite(pausedRemaining) && pausedRemaining > 0 ? pausedRemaining : null,
     createdAt: Number.isFinite(Number(input.createdAt)) ? Number(input.createdAt) : Date.now(),
     updatedAt: Date.now()
   };
 }
 
 export function sortTimers(timers) {
-  return [...timers].sort((a, b) => a.target - b.target || a.createdAt - b.createdAt);
+  const now = Date.now();
+  const sortTarget = (timer) => isTimerPaused(timer) ? now + timer.pausedRemaining : timer.target;
+  return [...timers].sort((a, b) => sortTarget(a) - sortTarget(b) || a.createdAt - b.createdAt);
 }
 
 export function filterTimersByLabel(timers, query) {
@@ -28,7 +35,30 @@ export function filterTimersByLabel(timers, query) {
 
 export function getNewlyExpiredTimers(timers, trackedActiveIds, now = Date.now()) {
   const trackedIds = trackedActiveIds instanceof Set ? trackedActiveIds : new Set(trackedActiveIds || []);
-  return timers.filter((timer) => timer.target <= now && trackedIds.has(timer.id));
+  return timers.filter((timer) => !isTimerPaused(timer) && timer.target <= now && trackedIds.has(timer.id));
+}
+
+export function isTimerPaused(timer) {
+  return Number.isFinite(Number(timer?.pausedRemaining)) && Number(timer.pausedRemaining) > 0;
+}
+
+export function isTimerExpired(timer, now = Date.now()) {
+  return !isTimerPaused(timer) && Number(timer?.target) <= now;
+}
+
+export function getTimerRemaining(timer, now = Date.now()) {
+  const target = isTimerPaused(timer) ? now + Number(timer.pausedRemaining) : timer.target;
+  return splitDuration(target, now);
+}
+
+export function pauseTimer(timer, now = Date.now()) {
+  if (isTimerPaused(timer) || isTimerExpired(timer, now)) return timer;
+  return { ...timer, pausedRemaining: timer.target - now };
+}
+
+export function resumeTimer(timer, now = Date.now()) {
+  if (!isTimerPaused(timer)) return timer;
+  return { ...timer, target: now + Number(timer.pausedRemaining), pausedRemaining: null };
 }
 
 export function splitDuration(target, now = Date.now()) {

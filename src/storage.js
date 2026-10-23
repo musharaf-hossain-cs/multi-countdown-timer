@@ -1,4 +1,4 @@
-import { normalizeTimer, sortTimers } from "./timer.js";
+import { isTimerPaused, normalizeTimer, pauseTimer, resumeTimer, sortTimers } from "./timer.js";
 
 const LOCAL_KEY = "chronodeck.timers.v1";
 
@@ -62,5 +62,19 @@ export class TimerStore extends EventTarget {
 
   remove(id) {
     return this.commit(this.timers.filter((timer) => timer.id !== id));
+  }
+
+  pause(id, now = Date.now()) {
+    const current = this.timers.find((timer) => timer.id === id);
+    if (!current) return Promise.resolve();
+    const paused = pauseTimer(current, now);
+    if (paused === current) return Promise.resolve();
+    return this.update(id, paused);
+  }
+
+  resume(id, now = Date.now()) {
+    const current = this.timers.find((timer) => timer.id === id);
+    if (!current || !isTimerPaused(current)) return Promise.resolve();
+    return this.update(id, resumeTimer(current, now));
   }
 }

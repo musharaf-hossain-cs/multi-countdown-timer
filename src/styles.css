@@ -87,6 +87,12 @@ h1 em { color: var(--acid); font-style: normal; }
 .card-title-wrap h2 { margin: 0 0 8px; font-size: clamp(23px, 2.4vw, 35px); line-height: 1.05; letter-spacing: -.04em; font-weight: 500; overflow-wrap: anywhere; }
 .card-title-wrap p { margin: 0; color: var(--muted); font: 400 11px/1.4 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .04em; }
 .countdown { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: clamp(7px, 1.2vw, 19px); align-items: start; width: max-content; max-width: 100%; }
+.countdown-row { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px; width: max-content; max-width: 100%; }
+.countdown-row .countdown { order: 1; }
+.timer-toggle { order: 2; flex: 0 0 auto; width: 42px; height: 42px; display: inline-grid; place-items: center; padding: 0; color: #101113; background: var(--acid); border: 0; border-radius: 50%; cursor: pointer; transition: background .2s ease, transform .2s ease; }
+.timer-toggle:hover { background: #e6ff7c; transform: scale(1.05); }
+.timer-toggle svg { width: 18px; height: 18px; stroke-width: 2; }
+.timer-toggle[hidden] { display: none; }
 .time-unit { min-width: 0; }
 .time-unit strong { display: block; font: 400 clamp(30px, 4vw, 58px)/.92 "DM Mono", monospace; letter-spacing: -.08em; }
 .time-unit span { display: block; margin-top: 10px; color: #686a70; font: 500 8px/1 "DM Mono", monospace; letter-spacing: .12em; }
@@ -94,13 +100,19 @@ h1 em { color: var(--acid); font-style: normal; }
 .timer-board[data-view="list"] .timer-card { min-height: 165px; display: grid; grid-template-columns: minmax(220px, 1fr) auto; grid-template-rows: auto 1fr; align-items: end; column-gap: 40px; }
 .timer-board[data-view="list"] .card-topline { grid-column: 1 / -1; align-self: start; }
 .timer-board[data-view="list"] .card-title-wrap { margin: 25px 0 0; }
-.timer-board[data-view="list"] .countdown { grid-column: 2; grid-row: 2; }
+.timer-board[data-view="list"] .countdown-row { grid-column: 2; grid-row: 2; }
+.timer-board[data-view="list"] .timer-toggle { order: 0; }
+.timer-board[data-view="list"] .countdown { order: 1; }
 
 .is-expired { border-color: rgba(255,93,82,.45); animation: alarm 1.15s steps(1, end) infinite; }
 .is-expired .timer-status, .is-expired .time-unit strong { color: var(--danger); }
 .is-expired .timer-status i { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
 @keyframes alarm { 0%, 49% { background: #241616; } 50%, 100% { background: #141518; } }
 @media (prefers-reduced-motion: reduce) { .is-expired { animation: none; box-shadow: inset 4px 0 var(--danger); } }
+.is-paused { border-color: rgba(217,255,67,.32); }
+.is-paused .timer-status { color: var(--acid); }
+.is-paused .timer-status i { box-shadow: none; }
+.is-paused .countdown { opacity: .64; }
 
 .empty-state { grid-column: 1 / -1; min-height: 390px; display: grid; place-items: center; align-content: center; text-align: center; border: 1px dashed #303238; background: rgba(20,21,24,.45); }
 .empty-state > span { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 24px; border: 1px solid #3a3c42; border-radius: 50%; color: var(--acid); }
@@ -148,6 +160,8 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
 .board:fullscreen .card-title-wrap h2 { font-size: var(--present-title); }
 .board:fullscreen .card-title-wrap p { font-size: clamp(9px, 1vw, 14px); margin-top: 13px; }
 .board:fullscreen .countdown { width: 100%; gap: clamp(5px, 1.2vw, 22px); justify-content: space-between; }
+.board:fullscreen .countdown-row { width: 100%; }
+.board:fullscreen .countdown-row .countdown { flex: 1; width: auto; }
 .board:fullscreen .time-unit strong { font-size: var(--present-digit); }
 .board:fullscreen .empty-state { grid-column: 1 / -1; height: 100%; }
 
@@ -171,6 +185,9 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
   .timer-card { min-height: 270px; padding: 19px; }
   .timer-board[data-view="list"] .timer-card { display: flex; min-height: 270px; }
   .countdown { width: 100%; justify-content: space-between; gap: 4px; }
+  .countdown-row { width: 100%; gap: 9px; }
+  .countdown-row .countdown { flex: 1; width: auto; }
+  .timer-toggle { width: 36px; height: 36px; }
   .time-unit strong { font-size: clamp(29px, 10vw, 48px); }
   .colon { font-size: 25px; }
   footer { gap: 12px; font-size: 9px; }
