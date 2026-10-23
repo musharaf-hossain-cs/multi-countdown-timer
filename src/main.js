@@ -6,7 +6,7 @@ import { icons } from "./icons.js";
 const store = new TimerStore();
 let view = localStorage.getItem("chronodeck.view") || "grid";
 let editingId = null;
-let lastRenderedSecond = -1;
+let lastUpdatedSecond = -1;
 
 const app = document.querySelector("#app");
 app.innerHTML = `
@@ -165,6 +165,35 @@ function renderTimer(timer) {
   `;
 }
 
+function refreshCountdowns() {
+  const timersById = new Map(store.timers.map((timer) => [timer.id, timer]));
+  let activeCount = 0;
+
+  elements.timerBoard.querySelectorAll(".timer-card").forEach((card) => {
+    const timer = timersById.get(card.dataset.id);
+    if (!timer) return;
+
+    const remaining = splitDuration(timer.target);
+    if (!remaining.expired) activeCount += 1;
+    card.classList.toggle("is-expired", remaining.expired);
+
+    const status = card.querySelector(".timer-status");
+    if (status?.lastChild) status.lastChild.textContent = remaining.expired ? "TIME'S UP" : "COUNTING DOWN";
+
+    const values = [remaining.days, remaining.hours, remaining.minutes, remaining.seconds];
+    card.querySelectorAll(".time-unit strong").forEach((unitElement, index) => {
+      unitElement.textContent = String(values[index]).padStart(2, "0");
+    });
+
+    card.querySelector(".countdown")?.setAttribute(
+      "aria-label",
+      `${remaining.days} days, ${remaining.hours} hours, ${remaining.minutes} minutes, ${remaining.seconds} seconds`
+    );
+  });
+
+  elements.timerCount.textContent = activeCount;
+}
+
 function setPresentationGrid() {
   const count = Math.max(1, store.timers.length);
   const aspect = window.innerWidth / Math.max(1, window.innerHeight);
@@ -314,9 +343,9 @@ store.addEventListener("status", (event) => {
 
 window.setInterval(() => {
   const second = Math.floor(Date.now() / 1000);
-  if (second !== lastRenderedSecond && store.timers.length) {
-    lastRenderedSecond = second;
-    render();
+  if (second !== lastUpdatedSecond && store.timers.length) {
+    lastUpdatedSecond = second;
+    refreshCountdowns();
   }
 }, 250);
 

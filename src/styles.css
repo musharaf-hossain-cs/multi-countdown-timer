@@ -61,9 +61,9 @@ h1 em { color: var(--acid); font-style: normal; }
 
 .timer-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .timer-board[data-view="list"] { grid-template-columns: 1fr; }
-.timer-card { position: relative; min-height: 305px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 22px 24px 26px; background: var(--panel); border: 1px solid #202226; transition: border-color .2s ease; }
+.timer-card { position: relative; min-height: 305px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 22px 24px 26px; background: var(--panel); border: 1px solid #202226; transition: transform .2s ease, border-color .2s ease; }
 .timer-card::after { content: ""; position: absolute; inset: auto -70px -100px auto; width: 220px; height: 220px; border: 1px solid rgba(217,255,67,.09); border-radius: 50%; box-shadow: 0 0 0 35px rgba(217,255,67,.025), 0 0 0 70px rgba(217,255,67,.015); pointer-events: none; }
-.timer-card:hover { border-color: #3b3e45; }
+.timer-card:hover { border-color: #3b3e45; transform: translateY(-2px); }
 .card-topline { display: flex; justify-content: space-between; align-items: center; }
 .timer-status { display: flex; align-items: center; gap: 8px; color: #94969c; font: 500 10px/1 "DM Mono", monospace; letter-spacing: .1em; }
 .timer-status i { width: 5px; height: 5px; border-radius: 50%; background: var(--acid); box-shadow: 0 0 9px var(--acid); }
