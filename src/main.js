@@ -3,6 +3,14 @@ import { TimerStore } from "./storage.js";
 import { filterTimersByLabel, formatTarget, getNewlyExpiredTimers, getPresentationLayout, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js", { scope: "./" }).catch((error) => {
+      console.warn("App installation support could not be started.", error);
+    });
+  });
+}
+
 const store = new TimerStore();
 let view = localStorage.getItem("chronodeck.view") || "grid";
 let editingId = null;

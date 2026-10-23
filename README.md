@@ -10,6 +10,8 @@ A polished multi-countdown timer made for dashboards, presentations, and fullscr
 - Responsive grid and list layouts
 - Dynamic fullscreen presentation mode (`F` shortcut)
 - Local persistence across page refreshes
+- Installable as a desktop or mobile app from supported browsers
+- Offline reopening after the app has been loaded once
 - Static build that works from any GitHub Pages subpath
 
 ## Run locally
@@ -25,6 +27,12 @@ Run tests and create the production bundle:
 npm test
 npm run build
 ```
+
+## Install the app
+
+After the site is deployed over HTTPS, open it in Chrome or Edge and use the install icon in the address bar. On Android, the same option is available from the browser menu. Safari on iPhone and iPad uses **Share → Add to Home Screen**.
+
+Browsers decide when to show their native install control. During local development, use `npm run dev` or `npm run preview`; `localhost` is treated as a secure origin.
 
 ## Future scope: global sync
 
