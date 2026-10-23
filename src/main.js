@@ -64,7 +64,7 @@ app.innerHTML = `
     <form method="dialog" id="timerForm">
       <div class="dialog-heading">
         <div><p class="eyebrow" id="dialogEyebrow">NEW COUNTDOWN</p><h2 id="dialogTitle">Add a timer</h2></div>
-        <button class="icon-button" value="cancel" aria-label="Close">${icons.close}</button>
+        <button class="icon-button" type="button" data-dismiss="timer-dialog" aria-label="Close">${icons.close}</button>
       </div>
       <label>Label<input id="labelInput" name="label" maxlength="80" placeholder="e.g. Product launch" required autocomplete="off"></label>
       <fieldset class="time-option">
@@ -87,7 +87,7 @@ app.innerHTML = `
       </fieldset>
       <p class="form-error" id="formError" role="alert"></p>
       <div class="dialog-actions">
-        <button class="secondary-button" value="cancel">Cancel</button>
+        <button class="secondary-button" type="button" data-dismiss="timer-dialog">Cancel</button>
         <button class="primary-button" id="saveTimer" value="default">Save timer</button>
       </div>
     </form>
@@ -253,6 +253,10 @@ elements.form.addEventListener("submit", async (event) => {
   } catch (error) {
     elements.formError.textContent = error.message;
   }
+});
+
+elements.form.querySelectorAll('[data-dismiss="timer-dialog"]').forEach((button) => {
+  button.addEventListener("click", () => elements.dialog.close());
 });
 
 elements.confirmDelete.addEventListener("click", async (event) => {
