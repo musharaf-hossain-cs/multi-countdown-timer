@@ -73,7 +73,7 @@ h1 em { color: var(--acid); font-style: normal; }
 
 .timer-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .timer-board[data-view="list"] { grid-template-columns: 1fr; }
-.timer-card { position: relative; min-height: 305px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 22px 24px 26px; background: var(--panel); border: 1px solid #202226; transition: transform .2s ease, border-color .2s ease; }
+.timer-card { --countdown-digit-size: clamp(30px, 4vw, 58px); position: relative; min-height: 305px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 22px 24px 26px; background: var(--panel); border: 1px solid #202226; transition: transform .2s ease, border-color .2s ease; }
 .timer-card::after { content: ""; position: absolute; inset: auto -70px -100px auto; width: 220px; height: 220px; border: 1px solid rgba(217,255,67,.09); border-radius: 50%; box-shadow: 0 0 0 35px rgba(217,255,67,.025), 0 0 0 70px rgba(217,255,67,.015); pointer-events: none; }
 .timer-card:hover { border-color: #3b3e45; transform: translateY(-2px); }
 .card-topline { display: flex; justify-content: space-between; align-items: center; }
@@ -87,14 +87,14 @@ h1 em { color: var(--acid); font-style: normal; }
 .card-title-wrap h2 { margin: 0 0 8px; font-size: clamp(23px, 2.4vw, 35px); line-height: 1.05; letter-spacing: -.04em; font-weight: 500; overflow-wrap: anywhere; }
 .card-title-wrap p { margin: 0; color: var(--muted); font: 400 11px/1.4 "DM Mono", monospace; text-transform: uppercase; letter-spacing: .04em; }
 .countdown { position: relative; z-index: 1; display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: clamp(7px, 1.2vw, 19px); align-items: start; width: max-content; max-width: 100%; }
-.countdown-row { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 26px; width: max-content; max-width: 100%; }
+.countdown-row { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: .45em; width: max-content; max-width: 100%; font-size: var(--countdown-digit-size); }
 .countdown-row .countdown { order: 1; }
-.timer-toggle { order: 2; flex: 0 0 auto; width: 42px; height: 42px; margin-top: 4px; display: inline-grid; place-items: center; padding: 0; color: #101113; background: var(--acid); border: 0; border-radius: 50%; cursor: pointer; transition: background .2s ease, transform .2s ease; }
+.timer-toggle { order: 2; flex: 0 0 auto; width: clamp(30px, .75em, 42px); height: clamp(30px, .75em, 42px); margin-top: .07em; display: inline-grid; place-items: center; padding: 0; color: #101113; background: var(--acid); border: 0; border-radius: 50%; cursor: pointer; transition: background .2s ease, transform .2s ease; }
 .timer-toggle:hover { background: #e6ff7c; transform: scale(1.05); }
-.timer-toggle svg { width: 18px; height: 18px; stroke-width: 2; }
+.timer-toggle svg { width: clamp(14px, .31em, 18px); height: clamp(14px, .31em, 18px); stroke-width: 2; }
 .timer-toggle[hidden] { display: none; }
 .time-unit { min-width: 0; }
-.time-unit strong { display: block; font: 400 clamp(30px, 4vw, 58px)/.92 "DM Mono", monospace; letter-spacing: -.08em; }
+.time-unit strong { display: block; font: 400 var(--countdown-digit-size)/.92 "DM Mono", monospace; letter-spacing: -.08em; }
 .time-unit span { display: block; margin-top: 10px; color: #686a70; font: 500 8px/1 "DM Mono", monospace; letter-spacing: .12em; }
 .colon { color: #515359; font: 400 clamp(23px, 3vw, 40px)/.9 "DM Mono", monospace; }
 .timer-board[data-view="list"] .timer-card { min-height: 165px; display: grid; grid-template-columns: minmax(220px, 1fr) auto; grid-template-rows: auto 1fr; align-items: end; column-gap: 40px; }
@@ -154,7 +154,7 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
 .board:fullscreen .board-toolbar > div:first-child, .board:fullscreen .segmented { display: none; }
 .board:fullscreen .icon-text-button span { display: none; }
 .board:fullscreen .timer-board { width: 100%; height: 100%; display: grid; grid-template-columns: repeat(var(--present-tracks), minmax(0, 1fr)); grid-template-rows: repeat(var(--present-rows), minmax(0, 1fr)); gap: 10px; }
-.board:fullscreen .timer-card { grid-column: var(--present-start, auto) / span 2; min-height: 0; height: 100%; display: flex; flex-direction: column; padding: var(--present-padding); transform: none; }
+.board:fullscreen .timer-card { --countdown-digit-size: var(--present-digit); grid-column: var(--present-start, auto) / span 2; min-height: 0; height: 100%; display: flex; flex-direction: column; padding: var(--present-padding); transform: none; }
 .board:fullscreen .card-actions { display: none; }
 .board:fullscreen .card-title-wrap { max-width: 92%; margin: auto 0; }
 .board:fullscreen .card-title-wrap h2 { font-size: var(--present-title); }
@@ -182,13 +182,11 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
   .label-filter { flex: 1; width: auto; min-width: 0; }
   .icon-text-button span { display: none; }
   .timer-board { grid-template-columns: 1fr; }
-  .timer-card { min-height: 270px; padding: 19px; }
+  .timer-card { --countdown-digit-size: clamp(29px, 10vw, 48px); min-height: 270px; padding: 19px; }
   .timer-board[data-view="list"] .timer-card { display: flex; min-height: 270px; }
   .countdown { width: 100%; justify-content: space-between; gap: 4px; }
-  .countdown-row { width: 100%; gap: 14px; }
+  .countdown-row { width: 100%; }
   .countdown-row .countdown { flex: 1; width: auto; }
-  .timer-toggle { width: 36px; height: 36px; }
-  .time-unit strong { font-size: clamp(29px, 10vw, 48px); }
   .colon { font-size: 25px; }
   footer { gap: 12px; font-size: 9px; }
   dialog form { padding: 22px; }
@@ -198,7 +196,7 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
 @media (max-width: 430px) {
   .view-controls { gap: 7px; }
   .segmented { display: none; }
-  .time-unit strong { font-size: 28px; }
+  .timer-card { --countdown-digit-size: 28px; }
   .colon { font-size: 22px; }
   .card-title-wrap h2 { font-size: 27px; }
 }
