@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { durationToMilliseconds, fromLocalInputValues, getPresentationLayout, normalizeTimer, resolveTarget, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
+import { durationToMilliseconds, filterTimersByLabel, fromLocalInputValues, getNewlyExpiredTimers, getPresentationLayout, normalizeTimer, resolveTarget, sortTimers, splitDuration, toLocalInputValues } from "../src/timer.js";
 
 test("sortTimers orders countdowns by target time", () => {
   const timers = [
@@ -9,6 +9,31 @@ test("sortTimers orders countdowns by target time", () => {
     { id: "middle", target: 200, createdAt: 3 }
   ];
   assert.deepEqual(sortTimers(timers).map((timer) => timer.id), ["first", "middle", "later"]);
+});
+
+test("filterTimersByLabel matches partial labels without mutating the timer list", () => {
+  const timers = [
+    { id: "launch", label: "Product Launch" },
+    { id: "trip", label: "Dhaka Trip" },
+    { id: "review", label: "Launch Review" }
+  ];
+
+  assert.deepEqual(filterTimersByLabel(timers, " LAUnch ").map((timer) => timer.id), ["launch", "review"]);
+  assert.deepEqual(filterTimersByLabel(timers, "").map((timer) => timer.id), ["launch", "trip", "review"]);
+  assert.equal(timers.length, 3);
+});
+
+test("getNewlyExpiredTimers only returns timers that crossed expiry while tracked", () => {
+  const timers = [
+    { id: "expired", target: 999 },
+    { id: "still-active", target: 1001 },
+    { id: "already-expired", target: 500 }
+  ];
+
+  assert.deepEqual(
+    getNewlyExpiredTimers(timers, new Set(["expired", "still-active"]), 1000).map((timer) => timer.id),
+    ["expired"]
+  );
 });
 
 test("splitDuration calculates units and expiry", () => {

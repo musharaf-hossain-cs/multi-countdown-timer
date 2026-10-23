@@ -20,6 +20,17 @@ export function sortTimers(timers) {
   return [...timers].sort((a, b) => a.target - b.target || a.createdAt - b.createdAt);
 }
 
+export function filterTimersByLabel(timers, query) {
+  const normalizedQuery = String(query ?? "").trim().toLocaleLowerCase();
+  if (!normalizedQuery) return [...timers];
+  return timers.filter((timer) => String(timer.label ?? "").toLocaleLowerCase().includes(normalizedQuery));
+}
+
+export function getNewlyExpiredTimers(timers, trackedActiveIds, now = Date.now()) {
+  const trackedIds = trackedActiveIds instanceof Set ? trackedActiveIds : new Set(trackedActiveIds || []);
+  return timers.filter((timer) => timer.target <= now && trackedIds.has(timer.id));
+}
+
 export function splitDuration(target, now = Date.now()) {
   const delta = target - now;
   const totalSeconds = Math.max(0, Math.ceil(delta / 1000));

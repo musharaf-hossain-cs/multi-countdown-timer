@@ -56,6 +56,12 @@ h1 em { color: var(--acid); font-style: normal; }
 .segmented { display: flex; padding: 3px; border: 1px solid var(--line); border-radius: 3px; }
 .segmented button { width: 38px; height: 34px; background: transparent; color: var(--muted); }
 .segmented button.is-active { background: #292b2f; color: var(--ink); }
+.label-filter { width: min(210px, 24vw); height: 42px; padding: 0 13px; color: var(--ink); background: #101113; border: 1px solid var(--line); border-radius: 3px; font-size: 13px; }
+.label-filter::placeholder { color: #6f7177; }
+.label-filter::-webkit-search-cancel-button { filter: invert(.7); }
+.focus-timer-count { display: none; align-items: flex-end; gap: 7px; margin-left: 5px; }
+.focus-timer-count strong { color: var(--acid); font: 400 32px/.8 "DM Mono", monospace; }
+.focus-timer-count span { color: var(--muted); font: 500 8px/1.25 "DM Mono", monospace; letter-spacing: .08em; }
 .icon-text-button { gap: 8px; height: 42px; padding: 0 14px; border: 1px solid var(--line); background: transparent; border-radius: 3px; }
 .icon-text-button:hover, .secondary-button:hover { border-color: #555860; }
 .icon-text-button.is-active { color: var(--acid); border-color: rgba(217,255,67,.55); background: rgba(217,255,67,.06); }
@@ -63,6 +69,7 @@ h1 em { color: var(--acid); font-style: normal; }
 .shell.is-focus-mode main { padding-top: 0; }
 .shell.is-focus-mode .intro, .shell.is-focus-mode footer { display: none; }
 .shell.is-focus-mode .board { min-height: calc(100dvh - 92px); padding-top: 24px; padding-bottom: 42px; border-top: 0; }
+.shell.is-focus-mode .focus-timer-count { display: flex; }
 
 .timer-board { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .timer-board[data-view="list"] { grid-template-columns: 1fr; }
@@ -111,6 +118,7 @@ dialog form { padding: 30px; }
 dialog h2 { margin: 0; font-size: 30px; letter-spacing: -.04em; font-weight: 500; }
 dialog label { display: block; margin-bottom: 20px; color: #aaa; font: 500 10px/1 "DM Mono", monospace; letter-spacing: .1em; text-transform: uppercase; }
 dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; color: var(--ink); background: #0f1012; border: 1px solid #34363b; border-radius: 0; color-scheme: dark; }
+#labelInput { font: 400 16px/1 "Manrope", sans-serif; letter-spacing: 0; text-transform: none; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .time-option { min-width: 0; margin: 0; padding: 0; border: 0; }
 .time-option legend { margin: 0 0 4px; color: var(--ink); font: 500 11px/1 "DM Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
@@ -155,7 +163,9 @@ dialog input { width: 100%; height: 48px; margin-top: 10px; padding: 0 13px; col
   h1 { font-size: clamp(50px, 15vw, 74px); }
   .intro-stat { display: none; }
   .intro-copy { font-size: 14px; }
-  .board-toolbar { align-items: flex-end; }
+  .board-toolbar { align-items: flex-end; flex-wrap: wrap; gap: 16px; }
+  .view-controls { width: 100%; justify-content: flex-end; }
+  .label-filter { flex: 1; width: auto; min-width: 0; }
   .icon-text-button span { display: none; }
   .timer-board { grid-template-columns: 1fr; }
   .timer-card { min-height: 270px; padding: 19px; }

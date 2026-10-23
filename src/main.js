@@ -1,6 +1,6 @@
 import "./styles.css";
 import { TimerStore } from "./storage.js";
-import { formatTarget, getPresentationLayout, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
+import { filterTimersByLabel, formatTarget, getNewlyExpiredTimers, getPresentationLayout, resolveTarget, splitDuration, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
 
 const store = new TimerStore();
@@ -8,6 +8,22 @@ let view = localStorage.getItem("chronodeck.view") || "grid";
 let editingId = null;
 let lastUpdatedSecond = -1;
 let focusMode = false;
+let labelFilter = "";
+let targetInputsTouched = false;
+let trackedActiveTimerIds = new Set(store.timers.filter((timer) => timer.target > Date.now()).map((timer) => timer.id));
+let pendingExpiredTimerLabels = new Set();
+let tabAlertInterval = null;
+let tabAlertFrameVisible = false;
+
+const defaultDocumentTitle = document.title;
+const favicon = document.querySelector('link[rel~="icon"]');
+const defaultFaviconHref = favicon?.href;
+const alertFaviconHref = `data:image/svg+xml,${encodeURIComponent(`
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+    <rect width="64" height="64" rx="15" fill="#ff5d52"/>
+    <path d="M32 14v5m-9-8h18M32 20a17 17 0 1 0 0 34 17 17 0 0 0 0-34Zm0 7v8l6 4" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`)}`;
 
 const app = document.querySelector("#app");
 app.innerHTML = `
@@ -43,12 +59,17 @@ app.innerHTML = `
             <p class="section-meta" id="sortMeta">Sorted by time remaining</p>
           </div>
           <div class="view-controls" aria-label="View options">
+            <input class="label-filter" id="labelFilter" type="search" placeholder="Filter by label" aria-label="Filter timers by label" autocomplete="off">
             <div class="segmented" role="group" aria-label="Layout">
               <button data-view="grid" aria-label="Grid view">${icons.grid}</button>
               <button data-view="list" aria-label="List view">${icons.list}</button>
             </div>
             <button class="icon-text-button" id="focusButton" aria-label="Enter focus mode" aria-pressed="false">${icons.focus}<span>Focus</span></button>
             <button class="icon-text-button" id="fullscreenButton">${icons.expand}<span>Present</span></button>
+            <div class="focus-timer-count" aria-live="polite">
+              <strong id="focusTimerCount">0</strong>
+              <span>ACTIVE<br>TIMERS</span>
+            </div>
           </div>
         </div>
         <div class="timer-board" id="timerBoard" aria-live="polite"></div>
@@ -69,14 +90,6 @@ app.innerHTML = `
         <button class="icon-button" type="button" data-dismiss="timer-dialog" aria-label="Close">${icons.close}</button>
       </div>
       <label>Label<input id="labelInput" name="label" maxlength="80" placeholder="e.g. Product launch" required autocomplete="off"></label>
-      <fieldset class="time-option">
-        <legend>End date &amp; time</legend>
-        <div class="form-row">
-          <label>Date<input id="dateInput" name="date" type="date"></label>
-          <label>Time<input id="timeInput" name="time" type="time"></label>
-        </div>
-      </fieldset>
-      <div class="form-divider"><span>OR SET A DURATION</span></div>
       <fieldset class="time-option duration-option">
         <legend>Run timer for</legend>
         <div class="duration-grid">
@@ -86,6 +99,14 @@ app.innerHTML = `
           <label>Seconds<input id="durationSeconds" name="durationSeconds" type="number" min="0" max="59" step="1" inputmode="numeric" placeholder="00"></label>
         </div>
         <p class="duration-note">Starts counting from the moment you save.</p>
+      </fieldset>
+      <div class="form-divider"><span>OR SET AN END DATE</span></div>
+      <fieldset class="time-option">
+        <legend>End date &amp; time</legend>
+        <div class="form-row">
+          <label>Date<input id="dateInput" name="date" type="date"></label>
+          <label>Time<input id="timeInput" name="time" type="time"></label>
+        </div>
       </fieldset>
       <p class="form-error" id="formError" role="alert"></p>
       <div class="dialog-actions">
@@ -112,6 +133,8 @@ const elements = {
   board: document.querySelector("#board"),
   timerBoard: document.querySelector("#timerBoard"),
   timerCount: document.querySelector("#timerCount"),
+  focusTimerCount: document.querySelector("#focusTimerCount"),
+  labelFilter: document.querySelector("#labelFilter"),
   syncBadge: document.querySelector(".sync-badge"),
   dialog: document.querySelector("#timerDialog"),
   form: document.querySelector("#timerForm"),
@@ -167,16 +190,54 @@ function renderTimer(timer) {
   `;
 }
 
+function getTabAlertTitle() {
+  const labels = [...pendingExpiredTimerLabels];
+  if (labels.length === 1) return `⏰ ${labels[0]} ended!`;
+  return `⏰ ${labels.length} timers ended!`;
+}
+
+function updateTabAlertFrame() {
+  tabAlertFrameVisible = !tabAlertFrameVisible;
+  document.title = tabAlertFrameVisible ? getTabAlertTitle() : defaultDocumentTitle;
+  if (favicon) favicon.href = tabAlertFrameVisible ? alertFaviconHref : defaultFaviconHref;
+}
+
+function startTabAlert(expiredTimers) {
+  expiredTimers.forEach((timer) => pendingExpiredTimerLabels.add(timer.label));
+  if (tabAlertInterval) return;
+  tabAlertFrameVisible = false;
+  updateTabAlertFrame();
+  tabAlertInterval = window.setInterval(updateTabAlertFrame, 800);
+}
+
+function stopTabAlert() {
+  if (tabAlertInterval) window.clearInterval(tabAlertInterval);
+  tabAlertInterval = null;
+  tabAlertFrameVisible = false;
+  pendingExpiredTimerLabels.clear();
+  document.title = defaultDocumentTitle;
+  if (favicon) favicon.href = defaultFaviconHref;
+}
+
+function trackTimerExpirations(now) {
+  const newlyExpiredTimers = getNewlyExpiredTimers(store.timers, trackedActiveTimerIds, now);
+  trackedActiveTimerIds = new Set(
+    store.timers.filter((timer) => timer.target > now).map((timer) => timer.id)
+  );
+  if (document.hidden && newlyExpiredTimers.length) startTabAlert(newlyExpiredTimers);
+}
+
 function refreshCountdowns() {
+  const now = Date.now();
   const timersById = new Map(store.timers.map((timer) => [timer.id, timer]));
-  let activeCount = 0;
+  const activeCount = store.timers.filter((timer) => timer.target > now).length;
+  trackTimerExpirations(now);
 
   elements.timerBoard.querySelectorAll(".timer-card").forEach((card) => {
     const timer = timersById.get(card.dataset.id);
     if (!timer) return;
 
-    const remaining = splitDuration(timer.target);
-    if (!remaining.expired) activeCount += 1;
+    const remaining = splitDuration(timer.target, now);
     card.classList.toggle("is-expired", remaining.expired);
 
     const status = card.querySelector(".timer-status");
@@ -194,10 +255,12 @@ function refreshCountdowns() {
   });
 
   elements.timerCount.textContent = activeCount;
+  elements.focusTimerCount.textContent = activeCount;
 }
 
 function setPresentationGrid() {
-  const count = Math.max(1, store.timers.length);
+  const cards = [...elements.timerBoard.querySelectorAll(".timer-card")];
+  const count = Math.max(1, cards.length);
   const aspect = window.innerWidth / Math.max(1, window.innerHeight);
   const layout = getPresentationLayout(count, aspect);
   const cellWidth = (window.innerWidth - ((layout.columns + 1) * 10)) / layout.columns;
@@ -211,7 +274,6 @@ function setPresentationGrid() {
   elements.timerBoard.style.setProperty("--present-title", `${titleSize}px`);
   elements.timerBoard.style.setProperty("--present-padding", `${paddingSize}px`);
 
-  const cards = [...elements.timerBoard.querySelectorAll(".timer-card")];
   cards.forEach((card) => card.style.removeProperty("--present-start"));
   if (layout.lastRowCount < layout.columns && cards[layout.firstLastRowIndex]) {
     cards[layout.firstLastRowIndex].style.setProperty("--present-start", layout.firstLastRowTrack);
@@ -224,7 +286,10 @@ function render() {
     button.classList.toggle("is-active", button.dataset.view === view);
     button.setAttribute("aria-pressed", String(button.dataset.view === view));
   });
-  elements.timerCount.textContent = store.timers.filter((timer) => timer.target > Date.now()).length;
+  const activeCount = store.timers.filter((timer) => timer.target > Date.now()).length;
+  const visibleTimers = filterTimersByLabel(store.timers, labelFilter);
+  elements.timerCount.textContent = activeCount;
+  elements.focusTimerCount.textContent = activeCount;
 
   if (!store.timers.length) {
     elements.timerBoard.innerHTML = `
@@ -235,8 +300,16 @@ function render() {
         <p>Add your first countdown and give the future a place on the screen.</p>
         <button class="primary-button" data-action="add" aria-label="Add first timer">${icons.plus}<span>Add first timer</span></button>
       </div>`;
+  } else if (!visibleTimers.length) {
+    elements.timerBoard.innerHTML = `
+      <div class="empty-state filter-empty-state">
+        <span>${icons.clock}</span>
+        <p class="eyebrow">NO MATCHING TIMERS</p>
+        <h2>Nothing matches<br>“${escapeHtml(labelFilter.trim())}”</h2>
+        <p>Try another label or clear the filter to see every countdown.</p>
+      </div>`;
   } else {
-    elements.timerBoard.innerHTML = store.timers.map(renderTimer).join("");
+    elements.timerBoard.innerHTML = visibleTimers.map(renderTimer).join("");
   }
   setPresentationGrid();
 }
@@ -244,13 +317,15 @@ function render() {
 function openTimerDialog(timer = null) {
   editingId = timer?.id || null;
   const values = toLocalInputValues(timer?.target);
+  const remaining = timer ? splitDuration(timer.target) : null;
   elements.label.value = timer?.label || "";
   elements.date.value = values.date;
   elements.time.value = values.time;
-  elements.durationDays.value = "";
-  elements.durationHours.value = "";
-  elements.durationMinutes.value = "";
-  elements.durationSeconds.value = "";
+  elements.durationDays.value = remaining ? remaining.days : "";
+  elements.durationHours.value = remaining ? remaining.hours : "";
+  elements.durationMinutes.value = remaining ? remaining.minutes : "";
+  elements.durationSeconds.value = remaining ? remaining.seconds : "";
+  targetInputsTouched = false;
   elements.formError.textContent = "";
   document.querySelector("#dialogEyebrow").textContent = timer ? "EDIT COUNTDOWN" : "NEW COUNTDOWN";
   document.querySelector("#dialogTitle").textContent = timer ? "Update timer" : "Add a timer";
@@ -268,16 +343,19 @@ function openDeleteDialog(timer) {
 elements.form.addEventListener("submit", async (event) => {
   event.preventDefault();
   try {
-    const target = resolveTarget({
-      date: elements.date.value,
-      time: elements.time.value,
-      duration: {
-        days: elements.durationDays.value,
-        hours: elements.durationHours.value,
-        minutes: elements.durationMinutes.value,
-        seconds: elements.durationSeconds.value
-      }
-    });
+    const currentTimer = editingId ? store.timers.find((timer) => timer.id === editingId) : null;
+    const target = currentTimer && !targetInputsTouched
+      ? currentTimer.target
+      : resolveTarget({
+        date: elements.date.value,
+        time: elements.time.value,
+        duration: {
+          days: elements.durationDays.value,
+          hours: elements.durationHours.value,
+          minutes: elements.durationMinutes.value,
+          seconds: elements.durationSeconds.value
+        }
+      });
     if (editingId) await store.update(editingId, { label: elements.label.value, target });
     else await store.add({ label: elements.label.value, target });
     elements.dialog.close();
@@ -285,6 +363,19 @@ elements.form.addEventListener("submit", async (event) => {
     elements.formError.textContent = error.message;
   }
 });
+
+[elements.durationDays, elements.durationHours, elements.durationMinutes, elements.durationSeconds]
+  .forEach((input) => input.addEventListener("input", () => {
+    targetInputsTouched = true;
+  }));
+
+[elements.date, elements.time].forEach((input) => input.addEventListener("input", () => {
+  targetInputsTouched = true;
+  elements.durationDays.value = "";
+  elements.durationHours.value = "";
+  elements.durationMinutes.value = "";
+  elements.durationSeconds.value = "";
+}));
 
 elements.form.querySelectorAll('[data-dismiss="timer-dialog"]').forEach((button) => {
   button.addEventListener("click", () => elements.dialog.close());
@@ -315,6 +406,11 @@ document.querySelectorAll("button[data-view]").forEach((button) => button.addEve
   render();
 }));
 
+elements.labelFilter.addEventListener("input", (event) => {
+  labelFilter = event.currentTarget.value;
+  render();
+});
+
 document.querySelector("#focusButton").addEventListener("click", (event) => {
   focusMode = !focusMode;
   document.querySelector(".shell").classList.toggle("is-focus-mode", focusMode);
@@ -339,15 +435,25 @@ document.addEventListener("fullscreenchange", () => {
   elements.board.classList.toggle("is-presenting", Boolean(document.fullscreenElement));
   setPresentationGrid();
 });
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) stopTabAlert();
+});
+window.addEventListener("pagehide", stopTabAlert);
 window.addEventListener("resize", setPresentationGrid);
 document.addEventListener("keydown", (event) => {
+  if (event.target.closest("input, textarea, select, [contenteditable='true']")) return;
   if (event.key.toLowerCase() === "f" && !elements.dialog.open && !elements.deleteDialog.open) {
     document.querySelector("#fullscreenButton").click();
   }
   if (event.key.toLowerCase() === "n" && !elements.dialog.open && !elements.deleteDialog.open) openTimerDialog();
 });
 
-store.addEventListener("change", render);
+store.addEventListener("change", () => {
+  render();
+  trackedActiveTimerIds = new Set(
+    store.timers.filter((timer) => timer.target > Date.now()).map((timer) => timer.id)
+  );
+});
 store.addEventListener("status", (event) => {
   elements.syncBadge.dataset.state = event.detail.state;
   elements.syncBadge.querySelector("span").textContent = event.detail.message;
