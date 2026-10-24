@@ -3,6 +3,7 @@ import { TimerStore } from "./storage.js";
 import { filterTimersByLabel, formatTarget, getNewlyExpiredTimers, getPresentationLayout, getTimerRemaining, isTimerExpired, isTimerPaused, resolveTarget, toLocalInputValues } from "./timer.js";
 import { icons } from "./icons.js";
 import { createTimerWidget } from "./widget.js";
+import { isAppInBackground, updateAppBadge } from "./app-alert.js";
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -27,7 +28,6 @@ let tabAlertFrameVisible = false;
 const defaultDocumentTitle = document.title;
 const favicon = document.querySelector('link[rel~="icon"]');
 const defaultFaviconHref = favicon?.href;
-const isInstalledApp = window.matchMedia("(display-mode: standalone)").matches;
 const alertFaviconHref = `data:image/svg+xml,${encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
     <rect width="64" height="64" rx="15" fill="#ff5d52"/>
@@ -229,26 +229,15 @@ function getTabAlertTitle() {
   return `⏰ ${labels.length} timers ended!`;
 }
 
-function updateInstalledAppBadge(visible) {
-  if (!isInstalledApp) return;
-
-  try {
-    const operation = visible ? navigator.setAppBadge?.() : navigator.clearAppBadge?.();
-    operation?.catch(() => {});
-  } catch {
-    // Badging support is optional and must not interrupt the countdown alert.
-  }
-}
-
 function updateTabAlertFrame() {
   tabAlertFrameVisible = !tabAlertFrameVisible;
   document.title = tabAlertFrameVisible ? getTabAlertTitle() : defaultDocumentTitle;
   if (favicon) favicon.href = tabAlertFrameVisible ? alertFaviconHref : defaultFaviconHref;
-  updateInstalledAppBadge(tabAlertFrameVisible);
 }
 
 function startTabAlert(expiredTimers) {
   expiredTimers.forEach((timer) => pendingExpiredTimerLabels.add(timer.label));
+  updateAppBadge(navigator, pendingExpiredTimerLabels.size);
   if (tabAlertInterval) return;
   tabAlertFrameVisible = false;
   updateTabAlertFrame();
@@ -262,7 +251,7 @@ function stopTabAlert() {
   pendingExpiredTimerLabels.clear();
   document.title = defaultDocumentTitle;
   if (favicon) favicon.href = defaultFaviconHref;
-  updateInstalledAppBadge(false);
+  updateAppBadge(navigator, 0);
 }
 
 function trackTimerExpirations(now) {
@@ -270,8 +259,7 @@ function trackTimerExpirations(now) {
   trackedActiveTimerIds = new Set(
     store.timers.filter((timer) => !isTimerExpired(timer, now)).map((timer) => timer.id)
   );
-  const appIsInBackground = document.hidden || (isInstalledApp && !document.hasFocus());
-  if (appIsInBackground && newlyExpiredTimers.length) startTabAlert(newlyExpiredTimers);
+  if (isAppInBackground(document) && newlyExpiredTimers.length) startTabAlert(newlyExpiredTimers);
 }
 
 function refreshCountdowns() {
@@ -500,7 +488,7 @@ document.addEventListener("fullscreenchange", () => {
   setPresentationGrid();
 });
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden) stopTabAlert();
+  if (!isAppInBackground(document)) stopTabAlert();
 });
 window.addEventListener("focus", stopTabAlert);
 window.addEventListener("pagehide", () => {
